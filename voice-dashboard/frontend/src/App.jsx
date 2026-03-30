@@ -124,7 +124,7 @@ function App() {
               <h2 className="text-3xl font-bold text-slate-900 mb-2">Admin Dashboard</h2>
               <p className="text-slate-600">Overview of all audio generations and system statistics</p>
             </div>
-            <AdminDashboard />
+            <AdminDashboard socket={socket} />
 
             {/* Additional Stats */}
             <div className="bg-white rounded-xl shadow-lg p-8 border border-slate-200">
