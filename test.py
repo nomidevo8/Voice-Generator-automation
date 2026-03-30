@@ -129,7 +129,7 @@ def run():
 
         human_delay(5, 8)
 
-        # browser.close()
+        browser.close()
 
 if __name__ == "__main__":
     run()
