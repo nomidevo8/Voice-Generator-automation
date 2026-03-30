@@ -19,7 +19,7 @@ export default function audioRoutes(io) {
       }
 
       // Create recording entry
-      const recording = Recording.create({
+      const recording = await Recording.create({
         title,
         text,
         voice: voice || 'default'
@@ -43,9 +43,9 @@ export default function audioRoutes(io) {
   });
 
   // Get recording details
-  router.get('/:id', (req, res) => {
+  router.get('/:id', async (req, res) => {
     try {
-      const recording = Recording.getById(req.params.id);
+      const recording = await Recording.getById(req.params.id);
       
       if (!recording) {
         return res.status(404).json({ error: 'Recording not found' });

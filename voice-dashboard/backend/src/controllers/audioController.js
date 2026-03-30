@@ -8,14 +8,14 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 export async function generateAudio(io, recordingId, text) {
-  const recording = Recording.getById(recordingId);
+  const recording = await Recording.getById(recordingId);
   
   if (!recording) {
     throw new Error('Recording not found');
   }
 
   // Update status to processing
-  Recording.update(recordingId, { status: 'processing' });
+  await Recording.update(recordingId, { status: 'processing' });
   io.emit('progress', {
     recordingId,
     status: 'processing',
@@ -135,7 +135,7 @@ except Exception as e:
       const fileSize = stats.size;
 
       // Update recording with paths and status
-      Recording.update(recordingId, {
+      await Recording.update(recordingId, {
         status: 'completed',
         audioPath: `/downloads/${recordingId}/output_audio.mp3`,
         alignmentPath: `/downloads/${recordingId}/alignment_data.json`,
@@ -159,7 +159,7 @@ except Exception as e:
   } catch (error) {
     console.error('Audio generation error:', error);
     
-    Recording.update(recordingId, { status: 'failed' });
+    await Recording.update(recordingId, { status: 'failed' });
     io.emit('progress', {
       recordingId,
       status: 'failed',
