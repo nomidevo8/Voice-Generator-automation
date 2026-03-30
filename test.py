@@ -3,11 +3,9 @@ import random
 from playwright.sync_api import sync_playwright
 
 def human_delay(a=0.5, b=2.0):
-    """Random delay to simulate human thinking time"""
     time.sleep(random.uniform(a, b))
 
 def human_type(page, selector, text):
-    """Type like a human with random delays between keystrokes"""
     for char in text:
         page.type(selector, char, delay=random.randint(50, 150))
 
@@ -24,38 +22,38 @@ def run():
 
         page = context.new_page()
 
-        # --- Step 1: Go to website ---
-        url = "https://elevenlabs.io/"  # replace later
+        # 1. Go to site
+        url = "https://elevenlabs.io/"  # target site
         page.goto(url)
 
-        human_delay(2, 4)
+        human_delay(3, 5)
 
-        # --- Step 2: Move mouse randomly (human-like) ---
-        page.mouse.move(300, 300)
-        human_delay(0.5, 1.5)
-        page.mouse.move(500, 400)
-
-        # --- Step 3: Wait for textbox ---
-        textbox_selector = "input[type='text']"  # replace later
-        page.wait_for_selector(textbox_selector)
+        # 2. Wait for textarea (IMPORTANT)
+        textarea_selector = 'textarea[aria-label*="Enter your text here"]'
+        page.wait_for_selector(textarea_selector)
 
         human_delay(1, 2)
 
-        # --- Step 4: Click into textbox ---
-        page.click(textbox_selector)
+        # 3. Click inside textarea
+        page.click(textarea_selector)
 
         human_delay(0.5, 1.0)
 
-        # --- Step 5: Human-like typing ---
-        text_to_type = "Hello, this is test content"
-        human_type(page, textbox_selector, text_to_type)
+        # 4. Clear existing text (optional)
+        page.fill(textarea_selector, "")
 
-        human_delay(1, 2)
+        human_delay(0.5, 1.0)
 
-        # --- Optional: Press Enter ---
+        # 5. Human-like typing
+        text_to_type = """In the ancient land of Eldoria, where skies shimmered and forests whispered secrets to the wind..."""
+
+        human_type(page, textarea_selector, text_to_type)
+
+        human_delay(2, 3)
+
+        # 6. Optional: press Enter or click play button later
         # page.keyboard.press("Enter")
 
-        # --- Keep open for observation ---
         human_delay(5, 8)
 
         browser.close()
