@@ -14,7 +14,7 @@ def wait_for_captcha_manual(page, timeout=300):
     Timeout in seconds (default 5 minutes)
     """
     print("\n" + "="*60)
-    print("⚠ CAPTCHA DETECTED!")
+    print("[!] CAPTCHA DETECTED!")
     print("Please solve the captcha in the browser window manually.")
     print(f"Waiting for {timeout} seconds...")
     print("="*60 + "\n")
@@ -28,13 +28,13 @@ def wait_for_captcha_manual(page, timeout=300):
             try:
                 # Try to see if main content is now visible
                 page.wait_for_selector('textarea[aria-label*="Enter your text"]', timeout=2000)
-                print("✓ Captcha solved! Continuing...\n")
+                print("[+] Captcha solved! Continuing...\n")
                 return True
             except:
                 # Still waiting
                 time.sleep(1)
         
-        print("⚠ Captcha timeout - proceeding anyway\n")
+        print("[!] Captcha timeout - proceeding anyway\n")
         return False
     except KeyboardInterrupt:
         print("User skipped captcha wait")
@@ -159,8 +159,8 @@ def capture_api_response(page, timeout=30000):
                 captured_response['url'] = response.url
                 captured_response['method'] = response.request.method
                 captured_response['body'] = response_data
-                print(f"\n✓ Response captured from: {response.url}")
-                print(f"✓ Status: {response.status}")
+                print(f"\n[+] Response captured from: {response.url}")
+                print(f"[+] Status: {response.status}")
             except:
                 pass
     
@@ -281,9 +281,9 @@ def run(proxy=None, keep_browser_open=True, browser_type="chromium"):
         try:
             textarea_selector = 'textarea[aria-label*="Enter your text here"]'
             page.wait_for_selector(textarea_selector, timeout=15000)  # Longer timeout
-            print("✓ Textarea found!")
+            print("[+] Textarea found!")
         except Exception as e:
-            print(f"⚠ Could not find textarea: {e}")
+            print(f"[!] Could not find textarea: {e}")
             print("The page may have changed or captcha is still present")
             # Try to detect captcha again
             if detect_captcha(page):
@@ -293,9 +293,9 @@ def run(proxy=None, keep_browser_open=True, browser_type="chromium"):
                 # Try again with longer timeout
                 try:
                     page.wait_for_selector(textarea_selector, timeout=30000)
-                    print("✓ Textarea found on second attempt!")
+                    print("[+] Textarea found on second attempt!")
                 except Exception as e2:
-                    print(f"❌ Could not find textarea even after retry: {e2}")
+                    print(f"[X] Could not find textarea even after retry: {e2}")
                     raise
 
         human_delay(2, 3)
@@ -311,7 +311,7 @@ def run(proxy=None, keep_browser_open=True, browser_type="chromium"):
             page.locator(textarea_selector).scroll_into_view_if_needed()
             human_delay(1, 2)
         except Exception as e:
-            print(f"⚠ Could not scroll element into view: {e}")
+            print(f"[!] Could not scroll element into view: {e}")
 
         # 3.5 Click inside textarea with hover first (but make it optional)
         print("🖱️ Hovering over textarea...")
@@ -319,9 +319,9 @@ def run(proxy=None, keep_browser_open=True, browser_type="chromium"):
             human_hover(page, textarea_selector)
             human_delay(1, 2)
         except Exception as e:
-            print(f"⚠ Hover failed ({e}), skipping to direct click...")
+            print(f"[!] Hover failed ({e}), skipping to direct click...")
         
-        print("📝 Clicking on textarea...")
+        print("[~] Clicking on textarea...")
         page.click(textarea_selector)
 
         human_delay(1, 2)  # Wait after clicking
@@ -373,7 +373,7 @@ def run(proxy=None, keep_browser_open=True, browser_type="chromium"):
             try:
                 button_elem = page.query_selector(selector)
                 if button_elem:
-                    print(f"✅ Found button with selector: {selector}")
+                    print(f"[+] Found button with selector: {selector}")
                     
                     # Set up response listener BEFORE clicking
                     captured_response = {}
@@ -381,8 +381,8 @@ def run(proxy=None, keep_browser_open=True, browser_type="chromium"):
                     def handle_response(response):
                         try:
                             if response.request.method == "POST" and "/anonymous" in response.url:
-                                print(f"\n✓ API Response detected from: {response.url}")
-                                print(f"✓ Status: {response.status}")
+                                print(f"\n[+] API Response detected from: {response.url}")
+                                print(f"[+] Status: {response.status}")
                                 
                                 # Store response info
                                 captured_response['status'] = response.status
@@ -393,14 +393,14 @@ def run(proxy=None, keep_browser_open=True, browser_type="chromium"):
                                 try:
                                     response_body = response.text()
                                     captured_response['body'] = response_body
-                                    print(f"✓ Response body captured ({len(response_body)} bytes)")
+                                    print(f"[+] Response body captured ({len(response_body)} bytes)")
                                 except Exception as e:
-                                    print(f"⚠ Could not get response body: {e}")
+                                    print(f"[!] Could not get response body: {e}")
                                     # Try JSON instead
                                     try:
                                         response_json = response.json()
                                         captured_response['body'] = json.dumps(response_json)
-                                        print(f"✓ Response JSON captured")
+                                        print(f"[+] Response JSON captured")
                                     except:
                                         pass
                         except Exception as e:
@@ -429,9 +429,9 @@ def run(proxy=None, keep_browser_open=True, browser_type="chromium"):
                             page.click(selector)
                         
                         response = response_info.value
-                        print(f"\n✓ Response captured via expect_response!")
-                        print(f"✓ Status: {response.status}")
-                        print(f"✓ URL: {response.url}")
+                        print(f"\n[+] Response captured via expect_response!")
+                        print(f"[+] Status: {response.status}")
+                        print(f"[+] URL: {response.url}")
                         
                         captured_response['status'] = response.status
                         captured_response['url'] = response.url
@@ -440,23 +440,23 @@ def run(proxy=None, keep_browser_open=True, browser_type="chromium"):
                         try:
                             response_body = response.text()
                             captured_response['body'] = response_body
-                            print(f"✓ Response body captured ({len(response_body)} bytes)")
+                            print(f"[+] Response body captured ({len(response_body)} bytes)")
                         except Exception as e:
-                            print(f"⚠ Could not get response body: {e}")
+                            print(f"[!] Could not get response body: {e}")
                             try:
                                 response_json = response.json()
                                 captured_response['body'] = json.dumps(response_json)
-                                print(f"✓ Response JSON captured")
+                                print(f"[+] Response JSON captured")
                             except:
                                 pass
                         
                         button_found = True
                         api_response = captured_response
-                        print("✓ Button clicked and response captured!")
+                        print("[+] Button clicked and response captured!")
                         break
                     
                     except Exception as e:
-                        print(f"⚠ wait_for_response timeout: {e}")
+                        print(f"[!] wait_for_response timeout: {e}")
                         print("Retrying with event listener...")
                         
                         # Fallback: just wait with the event listener
@@ -467,7 +467,7 @@ def run(proxy=None, keep_browser_open=True, browser_type="chromium"):
                         for i in range(15):
                             human_delay(1, 1)
                             if 'status' in captured_response and 'body' in captured_response:
-                                print("✓ Response captured!")
+                                print("[+] Response captured!")
                                 api_response = captured_response
                                 break
                         
@@ -500,7 +500,7 @@ def run(proxy=None, keep_browser_open=True, browser_type="chromium"):
                     with open('response.json', 'w', encoding='utf-8') as f:
                         json.dump(response_json, f, indent=2)
                     
-                    print("✓ Response saved to response.json")
+                    print("[+] Response saved to response.json")
                     
                     # Also save as response.txt for compatibility
                     with open('response.txt', 'w', encoding='utf-8') as f:
@@ -511,10 +511,10 @@ def run(proxy=None, keep_browser_open=True, browser_type="chromium"):
                         f.write("\n=== RESPONSE BODY ===\n")
                         f.write(json.dumps(response_json, indent=2))
                     
-                    print("✓ Response saved to response.txt")
+                    print("[+] Response saved to response.txt")
                     
                     # Print response preview
-                    print(f"\n📝 Response Preview:")
+                    print(f"\n[~] Response Preview:")
                     if 'audio_base64' in response_json:
                         print(f"   - Audio: {len(response_json['audio_base64'])} bytes")
                     if 'alignment' in response_json:
@@ -537,35 +537,35 @@ def run(proxy=None, keep_browser_open=True, browser_type="chromium"):
                         
                         if result.returncode == 0:
                             print(result.stdout)
-                            print("✅ Audio extraction completed successfully!")
+                            print("[+] Audio extraction completed successfully!")
                         else:
-                            print("⚠ Audio extraction had issues:")
+                            print("[!] Audio extraction had issues:")
                             print(result.stderr)
                     except subprocess.TimeoutExpired:
-                        print("⚠ Audio extraction timed out")
+                        print("[!] Audio extraction timed out")
                     except FileNotFoundError:
-                        print("⚠ Node.js not found. Please install Node.js to auto-extract audio.")
+                        print("[!] Node.js not found. Please install Node.js to auto-extract audio.")
                         print("   Run manually: node audio_extract.js")
                     except Exception as e:
-                        print(f"⚠ Error running audio extraction: {e}")
+                        print(f"[!] Error running audio extraction: {e}")
                         print("   Run manually: node audio_extract.js")
                 
                 except json.JSONDecodeError as e:
-                    print(f"⚠ Could not parse JSON: {e}")
+                    print(f"[!] Could not parse JSON: {e}")
                     # Save as plain text
                     with open('response.txt', 'w', encoding='utf-8') as f:
                         f.write(api_response['body'])
-                    print("✓ Response saved to response.txt (raw)")
+                    print("[+] Response saved to response.txt (raw)")
             else:
-                print("⚠ Response captured but no body - saving metadata...")
+                print("[!] Response captured but no body - saving metadata...")
                 with open('response.txt', 'w', encoding='utf-8') as f:
                     f.write("=== API RESPONSE (METADATA ONLY) ===\n")
                     f.write(f"URL: {api_response.get('url', 'N/A')}\n")
                     f.write(f"Status: {api_response.get('status', 'N/A')}\n")
                     f.write(f"Method: {api_response.get('method', 'N/A')}\n")
-                    f.write("\n⚠ Body not captured - may need to configure response capture\n")
+                    f.write("\n[!] Body not captured - may need to configure response capture\n")
         else:
-            print("⚠ No API response was captured")
+            print("[!] No API response was captured")
             print("The response handler may not have detected the /anonymous endpoint")
             print("Check the browser console (F12) for the actual API call")
         print("="*60)
@@ -575,7 +575,7 @@ def run(proxy=None, keep_browser_open=True, browser_type="chromium"):
         # Keep browser open or close it
         if keep_browser_open:
             print("\n" + "="*50)
-            print("✓ Browser will remain open. Press Ctrl+C to close.")
+            print("[+] Browser will remain open. Press Ctrl+C to close.")
             print("="*50)
             try:
                 # Keep the script running so browser stays open
@@ -586,13 +586,13 @@ def run(proxy=None, keep_browser_open=True, browser_type="chromium"):
                 try:
                     browser.close()
                 except Exception as e:
-                    print(f"⚠ Browser close error (expected): {e}")
+                    print(f"[!] Browser close error (expected): {e}")
         else:
             print("Closing browser...")
             try:
                 browser.close()
             except Exception as e:
-                print(f"⚠ Browser close error (expected): {e}")
+                print(f"[!] Browser close error (expected): {e}")
 
 if __name__ == "__main__":
     # Example usage:
@@ -609,16 +609,16 @@ if __name__ == "__main__":
     
     for browser_type in browsers_to_try:
         try:
-            print(f"\n🌐 Attempting with {browser_type.upper()}...")
+            print(f"\n[*] Attempting with {browser_type.upper()}...")
             print("="*60)
             run(keep_browser_open=True, browser_type=browser_type)
             break  # Success - don't try other browsers
         except Exception as e:
-            print(f"\n❌ {browser_type.upper()} failed: {e}")
+            print(f"\n[X] {browser_type.upper()} failed: {e}")
             print(f"Trying next browser...\n")
             continue
     else:
-        print("\n❌ All browsers failed. Please check:")
+        print("\n[X] All browsers failed. Please check:")
         print("1. Is Playwright installed? (python -m playwright install)")
         print("2. Is ElevenLabs.io accessible?")
         print("3. Check your internet connection")
