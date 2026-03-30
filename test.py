@@ -1,5 +1,6 @@
 import time
 import random
+import json
 from playwright.sync_api import sync_playwright
 
 def human_delay(a=0.5, b=2.0):
@@ -28,6 +29,33 @@ def human_hover(page, selector):
     """Hover over an element before interacting"""
     page.hover(selector)
     human_delay(0.5, 1.5)
+
+def capture_api_response(page, timeout=30000):
+    """
+    Capture the next POST response (usually the API call).
+    Returns the response text/JSON
+    """
+    captured_response = {}
+    
+    def handle_response(response):
+        # Capture POST requests (usually API calls)
+        if response.request.method == "POST":
+            try:
+                # Try to get JSON response
+                response_data = response.text()
+                captured_response['status'] = response.status
+                captured_response['url'] = response.url
+                captured_response['method'] = response.request.method
+                captured_response['body'] = response_data
+                print(f"\n✓ Response captured from: {response.url}")
+                print(f"✓ Status: {response.status}")
+            except:
+                pass
+    
+    # Listen for responses
+    page.on("response", handle_response)
+    
+    return captured_response
 
 def run():
     with sync_playwright() as p:
@@ -106,19 +134,50 @@ def run():
         ]
         
         button_found = False
+        api_response = None
+        
         for selector in button_selectors:
             try:
                 button_elem = page.query_selector(selector)
                 if button_elem:
                     print(f"Found button with selector: {selector}")
+                    
+                    # Set up response listener BEFORE clicking
+                    captured_response = {}
+                    
+                    def handle_response(response):
+                        if response.request.method == "POST" and "/anonymous" in response.url:
+                            try:
+                                response_data = response.text()
+                                captured_response['status'] = response.status
+                                captured_response['url'] = response.url
+                                captured_response['method'] = response.request.method
+                                captured_response['body'] = response_data
+                                print(f"\n✓ API Response captured!")
+                                print(f"✓ Status: {response.status}")
+                                print(f"✓ URL: {response.url}")
+                            except:
+                                pass
+                    
+                    page.on("response", handle_response)
+                    
                     # Hover before clicking
                     human_hover(page, selector)
-                    # Click with slight delay
+                    
+                    # Click the button
+                    print("Clicking button...")
                     page.click(selector)
                     button_found = True
+                    
+                    # Wait for response
+                    print("Waiting for API response...")
+                    human_delay(2, 4)  # Wait for response
+                    
+                    api_response = captured_response
                     print("Button clicked!")
                     break
             except Exception as e:
+                print(f"Error with selector {selector}: {e}")
                 continue
         
         if not button_found:
@@ -126,6 +185,29 @@ def run():
             # Fallback: scroll to see if there's a button below
             human_scroll(page, "down", 2)
             human_delay(1, 2)
+        
+        # 8. Save response to file
+        if api_response and api_response.get('body'):
+            print("\n" + "="*50)
+            print("SAVING RESPONSE TO FILE...")
+            with open('response.txt', 'w', encoding='utf-8') as f:
+                f.write("=== API RESPONSE ===\n")
+                f.write(f"URL: {api_response.get('url', 'N/A')}\n")
+                f.write(f"Status: {api_response.get('status', 'N/A')}\n")
+                f.write(f"Method: {api_response.get('method', 'N/A')}\n")
+                f.write("\n=== RESPONSE BODY ===\n")
+                
+                # Try to format as JSON if possible
+                try:
+                    json_data = json.loads(api_response['body'])
+                    f.write(json.dumps(json_data, indent=2))
+                except:
+                    f.write(api_response['body'])
+            
+            print("✓ Response saved to response.txt")
+            print("="*50)
+        else:
+            print("⚠ No API response captured")
 
         human_delay(5, 8)
 
