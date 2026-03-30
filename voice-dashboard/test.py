@@ -3,7 +3,17 @@ import random
 import json
 import subprocess
 import os
+import sys
 from playwright.sync_api import sync_playwright
+
+# Get text from command-line argument or environment variable
+if len(sys.argv) > 1:
+    text_to_generate = sys.argv[1]
+    
+else:
+    text_to_generate = os.getenv('VOICE_TEXT', """In the ancient land of Eldoria, where skies shimmered and forests whispered secrets to the wind...""")
+
+print(f"[~] Text to generate ({len(text_to_generate)} chars): {text_to_generate[:100]}...")
 
 def human_delay(a=0.5, b=2.0):
     time.sleep(random.uniform(a, b))
@@ -333,10 +343,9 @@ def run(proxy=None, keep_browser_open=True, browser_type="chromium"):
 
         # 5. Human-like typing with pauses (like thinking) - SLOWER
         print("✍️ Typing text slowly and naturally...")
-        text_to_type = """In the ancient land of Eldoria, where skies shimmered and forests whispered secrets to the wind..."""
         
         # Simulate thinking pauses while typing - MORE PAUSES
-        for i, char in enumerate(text_to_type):
+        for i, char in enumerate(text_to_generate):
             # Slower character delay (100-200ms instead of 50-150ms)
             page.type(textarea_selector, char, delay=random.randint(100, 250))
             

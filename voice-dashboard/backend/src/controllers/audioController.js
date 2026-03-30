@@ -49,7 +49,8 @@ export async function generateAudio(io, recordingId, text) {
     // Execute Python test.py to generate audio
     // This will create response.json and output_audio.mp3 in the voiceGeneratorPath
     await new Promise((resolve, reject) => {
-      const pythonProcess = spawn('python', [testPyPath], {
+      // Pass text as command-line argument to Python script
+      const pythonProcess = spawn('python', [testPyPath, text], {
         cwd: voiceGeneratorPath,
         stdio: 'pipe'
       });
