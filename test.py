@@ -1,6 +1,8 @@
 import time
 import random
 import json
+import subprocess
+import os
 from playwright.sync_api import sync_playwright
 
 def human_delay(a=0.5, b=2.0):
@@ -250,6 +252,11 @@ def run(proxy=None, keep_browser_open=True, browser_type="chromium"):
         url = "https://elevenlabs.io/" 
         print("Loading page...")
         page.goto(url)
+        
+        # Wait for page to fully load
+        print("⏳ Waiting for page to load completely...")
+        page.wait_for_load_state("networkidle")
+        human_delay(2, 3)
 
         # 1. VERY LONG initial delay to "view" the page like a real user
         print("⏳ Simulating realistic page load time...")
@@ -274,6 +281,7 @@ def run(proxy=None, keep_browser_open=True, browser_type="chromium"):
         try:
             textarea_selector = 'textarea[aria-label*="Enter your text here"]'
             page.wait_for_selector(textarea_selector, timeout=15000)  # Longer timeout
+            print("✓ Textarea found!")
         except Exception as e:
             print(f"⚠ Could not find textarea: {e}")
             print("The page may have changed or captcha is still present")
@@ -283,7 +291,12 @@ def run(proxy=None, keep_browser_open=True, browser_type="chromium"):
                 wait_for_captcha_manual(page, timeout=300)
             else:
                 # Try again with longer timeout
-                page.wait_for_selector(textarea_selector, timeout=30000)
+                try:
+                    page.wait_for_selector(textarea_selector, timeout=30000)
+                    print("✓ Textarea found on second attempt!")
+                except Exception as e2:
+                    print(f"❌ Could not find textarea even after retry: {e2}")
+                    raise
 
         human_delay(2, 3)
         
@@ -292,10 +305,21 @@ def run(proxy=None, keep_browser_open=True, browser_type="chromium"):
         human_mouse_move(page)
         human_delay(1, 2)
 
-        # 3. Click inside textarea with hover first
+        # 3. Scroll textarea into view if needed
+        print("📍 Ensuring textarea is visible...")
+        try:
+            page.locator(textarea_selector).scroll_into_view_if_needed()
+            human_delay(1, 2)
+        except Exception as e:
+            print(f"⚠ Could not scroll element into view: {e}")
+
+        # 3.5 Click inside textarea with hover first (but make it optional)
         print("🖱️ Hovering over textarea...")
-        human_hover(page, textarea_selector)
-        human_delay(1, 2)
+        try:
+            human_hover(page, textarea_selector)
+            human_delay(1, 2)
+        except Exception as e:
+            print(f"⚠ Hover failed ({e}), skipping to direct click...")
         
         print("📝 Clicking on textarea...")
         page.click(textarea_selector)
@@ -467,21 +491,71 @@ def run(proxy=None, keep_browser_open=True, browser_type="chromium"):
             print(f"Response captured: {api_response}")
             if api_response.get('body'):
                 print("SAVING RESPONSE TO FILE...")
-                with open('response.txt', 'w', encoding='utf-8') as f:
-                    f.write("=== API RESPONSE ===\n")
-                    f.write(f"URL: {api_response.get('url', 'N/A')}\n")
-                    f.write(f"Status: {api_response.get('status', 'N/A')}\n")
-                    f.write(f"Method: {api_response.get('method', 'N/A')}\n")
-                    f.write("\n=== RESPONSE BODY ===\n")
-                    
-                    # Try to format as JSON if possible
-                    try:
-                        json_data = json.loads(api_response['body'])
-                        f.write(json.dumps(json_data, indent=2))
-                    except:
-                        f.write(api_response['body'])
                 
-                print("✓ Response saved to response.txt")
+                # Try to parse JSON response
+                try:
+                    response_json = json.loads(api_response['body'])
+                    
+                    # Save as both response.json and response.txt for flexibility
+                    with open('response.json', 'w', encoding='utf-8') as f:
+                        json.dump(response_json, f, indent=2)
+                    
+                    print("✓ Response saved to response.json")
+                    
+                    # Also save as response.txt for compatibility
+                    with open('response.txt', 'w', encoding='utf-8') as f:
+                        f.write("=== API RESPONSE ===\n")
+                        f.write(f"URL: {api_response.get('url', 'N/A')}\n")
+                        f.write(f"Status: {api_response.get('status', 'N/A')}\n")
+                        f.write(f"Method: {api_response.get('method', 'N/A')}\n")
+                        f.write("\n=== RESPONSE BODY ===\n")
+                        f.write(json.dumps(response_json, indent=2))
+                    
+                    print("✓ Response saved to response.txt")
+                    
+                    # Print response preview
+                    print(f"\n📝 Response Preview:")
+                    if 'audio_base64' in response_json:
+                        print(f"   - Audio: {len(response_json['audio_base64'])} bytes")
+                    if 'alignment' in response_json:
+                        chars = response_json['alignment'].get('characters', [])
+                        print(f"   - Alignment: {len(chars)} characters")
+                    
+                    # AUTO-EXTRACT AUDIO: Run Node.js script automatically
+                    print("\n" + "="*60)
+                    print("🚀 Auto-generating audio file...")
+                    print("="*60)
+                    try:
+                        # Run audio_extract.js automatically
+                        result = subprocess.run(
+                            ["node", "audio_extract.js"],
+                            cwd=os.getcwd(),
+                            capture_output=True,
+                            text=True,
+                            timeout=60
+                        )
+                        
+                        if result.returncode == 0:
+                            print(result.stdout)
+                            print("✅ Audio extraction completed successfully!")
+                        else:
+                            print("⚠ Audio extraction had issues:")
+                            print(result.stderr)
+                    except subprocess.TimeoutExpired:
+                        print("⚠ Audio extraction timed out")
+                    except FileNotFoundError:
+                        print("⚠ Node.js not found. Please install Node.js to auto-extract audio.")
+                        print("   Run manually: node audio_extract.js")
+                    except Exception as e:
+                        print(f"⚠ Error running audio extraction: {e}")
+                        print("   Run manually: node audio_extract.js")
+                
+                except json.JSONDecodeError as e:
+                    print(f"⚠ Could not parse JSON: {e}")
+                    # Save as plain text
+                    with open('response.txt', 'w', encoding='utf-8') as f:
+                        f.write(api_response['body'])
+                    print("✓ Response saved to response.txt (raw)")
             else:
                 print("⚠ Response captured but no body - saving metadata...")
                 with open('response.txt', 'w', encoding='utf-8') as f:
@@ -509,10 +583,16 @@ def run(proxy=None, keep_browser_open=True, browser_type="chromium"):
                     human_delay(1, 1)
             except KeyboardInterrupt:
                 print("\nClosing browser...")
-                browser.close()
+                try:
+                    browser.close()
+                except Exception as e:
+                    print(f"⚠ Browser close error (expected): {e}")
         else:
             print("Closing browser...")
-            browser.close()
+            try:
+                browser.close()
+            except Exception as e:
+                print(f"⚠ Browser close error (expected): {e}")
 
 if __name__ == "__main__":
     # Example usage:
@@ -524,4 +604,21 @@ if __name__ == "__main__":
     # run(browser_type="firefox", proxy="http://proxy.example.com:8080")  # Firefox + Proxy
     
     # Try Firefox first (less likely to be detected)
-    run(keep_browser_open=True, browser_type="firefox")
+    # If Firefox fails, automatically try Chromium and WebKit
+    browsers_to_try = ["firefox", "chromium", "webkit"]
+    
+    for browser_type in browsers_to_try:
+        try:
+            print(f"\n🌐 Attempting with {browser_type.upper()}...")
+            print("="*60)
+            run(keep_browser_open=True, browser_type=browser_type)
+            break  # Success - don't try other browsers
+        except Exception as e:
+            print(f"\n❌ {browser_type.upper()} failed: {e}")
+            print(f"Trying next browser...\n")
+            continue
+    else:
+        print("\n❌ All browsers failed. Please check:")
+        print("1. Is Playwright installed? (python -m playwright install)")
+        print("2. Is ElevenLabs.io accessible?")
+        print("3. Check your internet connection")

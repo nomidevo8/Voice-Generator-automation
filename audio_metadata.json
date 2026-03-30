@@ -1,0 +1,12 @@
+{
+  "timestamp": "2026-03-30T15:04:27.735Z",
+  "audio_size_bytes": 99518,
+  "audio_size_mb": "0.09",
+  "alignment_character_count": 98,
+  "normalized_alignment_count": 98,
+  "output_files": [
+    "output_audio.mp3",
+    "alignment_data.json",
+    "audio_metadata.json"
+  ]
+}
